@@ -1,9 +1,9 @@
-export class Pager {
+export class Pager<T> {
 
     constructor(
         public page: number,
         public total: number,
-        public list: Array<any>,
+        public list: Array<T>,
     ) { }
 
 }

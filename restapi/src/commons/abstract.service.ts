@@ -1,13 +1,14 @@
 /**
  * abstract.services.ts
  */
-import { Model } from 'mongoose';
-import { BusinessException } from '../exceptions/business.exception';
+
+import { Document, Model } from 'mongoose';
+import { BusinessException } from './../exceptions/business.exception';
 import { Pager } from './pager';
 
-export abstract class Service<T> {
+export abstract class AbstractService<T extends Document> {
 
-    constructor(public readonly model: Model<any>) {
+    constructor(public readonly model: Model<T>) {
     }
 
     abstract preCreate(obj: T): Promise<T>;
@@ -30,7 +31,7 @@ export abstract class Service<T> {
 
     async count(where?: any): Promise<number> {
         try {
-            return await this.model.count(where ? where : {}).exec();
+            return await this.model.countDocuments(where ? where : {}).exec();
         } catch (e) {
             throw new BusinessException(e);
         }
@@ -59,9 +60,9 @@ export abstract class Service<T> {
         }
     }
 
-    async pager(page: number, perPage: number, where?: any, sort?: any, populate?: any): Promise<any> {
+    async pager(page: number, perPage: number, where?: any, sort?: any, populate?: any): Promise<Pager<T | any>> {
         try {
-            return await this.model.count(where ? where : {}).exec()
+            return await this.model.countDocuments(where ? where : {}).exec()
                 .then(count => {
                     return this.model.find()
                         .populate(populate ? populate : "")
@@ -71,7 +72,7 @@ export abstract class Service<T> {
                         .sort(sort ? sort : {})
                         .exec()
                         .then(list => {
-                            return new Pager(page, count, list);
+                            return new Pager<T | any>(page, count, list);
                         })
                         .catch(err => { throw new BusinessException(err) });
                 })
@@ -103,8 +104,8 @@ export abstract class Service<T> {
             return await this.preUpdate(newValue).then((newValueUpdated: T) => {
                 return this.model.findByIdAndUpdate(id, newValueUpdated).exec()
                     .then(result => {
-                        this.postUpdate(result);
-                        return result;
+                        this.postUpdate(newValueUpdated);
+                        return newValueUpdated;
                     })
             }).catch(err => {
                 throw (err instanceof BusinessException ? err : new BusinessException(err));
@@ -116,7 +117,7 @@ export abstract class Service<T> {
     abstract postUpdate(obj: T): void;
 
     abstract preDelete(id: string): Promise<string>;
-    async delete(id: string): Promise<void> {
+    async delete(id: string): Promise<T> {
         try {
             return await this.preDelete(id).then((id: string) => {
                 return this.model.findByIdAndRemove(id).exec();
@@ -129,39 +130,6 @@ export abstract class Service<T> {
     async deleteMany(where: any): Promise<any> {
         try {
             return await this.model.deleteMany(where).exec();
-        } catch (e) {
-            throw new BusinessException(e);
-        }
-    }
-
-    private _assign(obj: T, newValue: T): T {
-        try {
-            for (const _id of Object.keys(obj)) {
-                if (obj[_id] !== newValue[_id]) {
-                    obj[_id] = newValue[_id];
-                }
-            }
-            return obj as T;
-        } catch (e) {
-            throw new BusinessException(e);
-        }
-    }
-
-    async cargaInicial(list: T[], where?: any) {
-        console.log(list);
-        try {
-            return this.model.count(where ? where : {}).exec()
-                .then(count => {
-                    if (count === 0) {
-                        list.forEach(obj => {
-                            new this.model(obj).save();
-                        });
-                        return true;
-                    }
-                    return false
-                }).catch(e => {
-                    throw new BusinessException(e);
-                })
         } catch (e) {
             throw new BusinessException(e);
         }

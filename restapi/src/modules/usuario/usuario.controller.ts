@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, Headers, HttpStatus, Param, Post, Put, Res, UseFilters, UseInterceptors } from '@nestjs/common';
+import { Pager } from '../../commons/pager';
 import { HttpExceptionFilter } from '../../filters/http-exception.filter';
 import { LoggingInterceptor } from '../../interceptors/logging.interceptor';
 import { UsuarioDocument } from './usuario.model';
@@ -10,7 +11,6 @@ import { UsuarioService } from './usuario.service';
 export class UsuarioController {
 
   constructor(private readonly service: UsuarioService) {
-    super();
   }
 
   @Get('/list')
@@ -24,7 +24,7 @@ export class UsuarioController {
   }
 
   @Get('/pager/:page/:perPage/')
-  async pager(@Param() params, @Headers() headers): Promise<UsuarioDocument[]> {
+  async pager(@Param() params, @Headers() headers): Promise<Pager<UsuarioDocument>> {
     return this.service.pager(parseInt(params.page, 10), parseInt(params.perPage, 10), { nome: 'asc' }, '');
   }
 
